@@ -6,7 +6,7 @@ from django.dispatch import receiver
 
 from simple_history.models import HistoricalRecords
 
-import datetime
+import datetime, pymongo
 
 class User(models.Model):
     first_name = models.CharField(max_length=100)
@@ -22,6 +22,10 @@ class Organization(models.Model):
 @receiver(post_save, sender=User)
 @receiver(post_save, sender=Organization)
 def upsertReport(sender, instance, **kwargs):
+    client = pymongo.MongoClient('localhost', 27017)
+    db = client.objectreport
+    collection = db.report
+
     responseDict = {}
     changed = []
     data = {}
@@ -55,11 +59,15 @@ def upsertReport(sender, instance, **kwargs):
                          "time":datetime.datetime.now().isoformat()})
 
     # print(responseDict)
-    mongoCol.insert_one(responseDict)
+    collection.insert_one(responseDict)
 
 @receiver(post_delete, sender=User)
 @receiver(post_delete, sender=Organization)
 def deleteReport(sender, instance, **kwargs):
+    client = pymongo.MongoClient('localhost', 27017)
+    db = client.objectreport
+    collection = db.report
+
     responseDict = {}
     responseDict.update({"operation": "deleted",
                          "changed": 'null',
@@ -69,4 +77,4 @@ def deleteReport(sender, instance, **kwargs):
                          "time": datetime.datetime.now().isoformat()})
 
     # print(responseDict)
-    mongoCol.insert_one(responseDict)
+    collection.insert_one(responseDict)

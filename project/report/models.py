@@ -22,6 +22,7 @@ class Organization(models.Model):
 @receiver(post_save, sender=User)
 @receiver(post_save, sender=Organization)
 def upsertReport(sender, instance, **kwargs):
+    #MongoDB Connection to objectreport db and report collection
     client = pymongo.MongoClient('localhost', 27017)
     db = client.objectreport
     collection = db.report
@@ -32,6 +33,7 @@ def upsertReport(sender, instance, **kwargs):
     senderHistory = {}
     skip = ['_state','id']
 
+    #Determines Updated or Created based of history
     try:
         senderHistory = sender.history.first().prev_record.__dict__
         operation = 'updated'
@@ -39,14 +41,17 @@ def upsertReport(sender, instance, **kwargs):
         operation = 'created'
 
     for i in instance.__dict__:
+        #Cleans a couple extra fields
         if i in skip:
             continue
 
+        #Checks for Updates to Fields
         if i in senderHistory.keys() and instance.__dict__[i] != '':
             if instance.__dict__[i] != senderHistory[i]:
                 changed.append(i)
                 data.update({i: instance.__dict__[i]})
 
+        #Adds Fields in Not Present in Object History
         elif i not in senderHistory.keys() and instance.__dict__[i] != '':
             changed.append(i)
             data.update({i: instance.__dict__[i]})
@@ -64,10 +69,12 @@ def upsertReport(sender, instance, **kwargs):
 @receiver(post_delete, sender=User)
 @receiver(post_delete, sender=Organization)
 def deleteReport(sender, instance, **kwargs):
+    #MongoDB Connection to objectreport db and report collection
     client = pymongo.MongoClient('localhost', 27017)
     db = client.objectreport
     collection = db.report
 
+    #Fills In Deleted Fields
     responseDict = {}
     responseDict.update({"operation": "deleted",
                          "changed": 'null',
